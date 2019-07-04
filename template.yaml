@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM app that uses Rekognition APIs to detect text in S3 Objects and stores labels in DynamoDB
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Resources:
+  DetectTextInImage:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Handler: src/app.lambda_handler
+      Runtime: ruby2.5
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ResultsTable
+      Policies:
+        - S3ReadPolicy:
+            BucketName: "rays-image-text-bucket"
+        - RekognitionDetectOnlyPolicy: {}
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ResultsTable
+      Events:
+        BucketEvent1:
+          Type: S3 # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Bucket: !Ref SourceImageBucket
+            Events:
+              - 's3:ObjectCreated:*'
+
+  SourceImageBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: "rays-image-text-bucket"
+
+  ResultsTable:
+    Type: AWS::Serverless::SimpleTable
+
